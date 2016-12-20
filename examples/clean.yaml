@@ -1,4 +1,14 @@
 Description: Test
-Foo: !Sub "The ${cake} is a lie"
-Bar: !Base64
-  Ref: Binary
+Parameters:
+  Cake:
+    Type: String
+    Description: The object of our desires
+    AllowedPattern: ^[a-z]+$
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'the-${Cake}-is-a-lie'
+Outputs:
+  BucketDomain:
+    Value: !GetAtt [Bucket, DomainName]

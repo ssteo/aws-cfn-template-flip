@@ -1,11 +1,30 @@
 {
     "Description": "Test",
-    "Foo": {
-        "Fn::Sub": "The ${cake} is a lie"
+    "Parameters": {
+        "Cake": {
+            "Type": "String",
+            "Description": "The object of our desires",
+            "AllowedPattern": "^[a-z]+$"
+        }
     },
-    "Bar": {
-        "Fn::Base64": {
-            "Ref": "Binary"
+    "Resources": {
+        "Bucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+                "BucketName": {
+                    "Fn::Sub": "the-${Cake}-is-a-lie"
+                }
+            }
+        }
+    },
+    "Outputs": {
+        "BucketDomain": {
+            "Value": {
+                "Fn::GetAtt": [
+                    "Bucket",
+                    "DomainName"
+                ]
+            }
         }
     }
 }
