@@ -10,6 +10,7 @@ or in the "license" file accompanying this file. This file is distributed on an 
 
 from .clean import clean
 from .custom_yaml import yaml
+from .validate import validate, ValidationError
 import collections
 import json
 
