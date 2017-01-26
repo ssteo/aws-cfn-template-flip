@@ -14,7 +14,7 @@ from .validate import validate, ValidationError
 import collections
 import json
 
-def to_json(template, clean_up=False):
+def to_json(template, clean_up=False, perform_validation=False):
     """
     Convert the data to json
     undoing yaml short syntax where detected
@@ -25,9 +25,12 @@ def to_json(template, clean_up=False):
     if clean_up:
         data = clean(data)
 
+    if perform_validation:
+        validate(data)
+
     return json.dumps(data, indent=4)
 
-def to_yaml(template, clean_up=False):
+def to_yaml(template, clean_up=False, perform_validation=False):
     """
     Convert the data to yaml
     using yaml short syntax for functions where possible
@@ -38,19 +41,26 @@ def to_yaml(template, clean_up=False):
     if clean_up:
         data = clean(data)
 
-    return yaml.dump(data)
+    if perform_validation:
+        validate(data)
 
-def flip(template, clean_up=False):
+    return yaml.dump(data, default_flow_style=False)
+
+def flip(template, clean_up=False, perform_validation=False):
     """
     Figure out the input format and convert the data to the opposing output format
     """
 
     try:
-        return to_yaml(template, clean_up)
+        return to_yaml(template, clean_up, perform_validation)
+    except ValidationError as err:
+        raise err
     except ValueError:
         pass  # Hand over to the yaml parser
 
     try:
-        return to_json(template, clean_up)
+        return to_json(template, clean_up, perform_validation)
+    except ValidationError as err:
+        raise err
     except Exception:
         raise Exception("Could not determine the input format. Perhaps it's malformed?")

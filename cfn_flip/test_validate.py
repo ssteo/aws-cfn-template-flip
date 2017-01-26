@@ -116,3 +116,91 @@ class ValidateTestCase(unittest.TestCase):
 
         with self.assertRaisesRegex(cfn_flip.ValidationError, "Resource \"Test\" has unexpected properties: Cake, WeightInKilograms"):
             cfn_flip.validate(source)
+
+    def test_wrong_type(self):
+        """
+        Check we fail when we receive an unexpected type
+        """
+
+        source = {
+            "Resources": {
+                "Test": {
+                    "Type": "AWS::S3::Bucket",
+                    "Properties": {
+                        "BucketName": 10,
+                    },
+                },
+            },
+        }
+
+        with self.assertRaisesRegex(cfn_flip.ValidationError, "Resource \"Test\" has invalid data in property \"BucketName\": 10 \(String expected\)"):
+            cfn_flip.validate(source)
+
+    def test_custom_type(self):
+        """
+        Validation should check for custom types
+        """
+
+        source = {
+            "Resources": {
+                "Test": {
+                    "Type": "AWS::S3::Bucket",
+                    "Properties": {
+                        "BucketName": "Fred",
+                        "VersioningConfiguration": {
+                            "Status": 10  # This is supposed to be a string
+                        },
+                    },
+                },
+            },
+        }
+
+        with self.assertRaisesRegex(cfn_flip.ValidationError, "Resource \"Test\" has invalid data in property \"Status\": 10 \(String expected\)"):
+            cfn_flip.validate(source)
+
+    def test_get_att(self):
+        """
+        Validation should check for GetAtt
+        """
+
+        source = {
+            "Resources": {
+                "First": {
+                    "Type": "AWS::S3::Bucket",
+                },
+                "Test": {
+                    "Type": "AWS::S3::Bucket",
+                    "Properties": {
+                        "BucketName": {
+                            "Fn::GetAtt": ["First", "DomainName"],
+                        },
+                    },
+                },
+            },
+        }
+
+        cfn_flip.validate(source)  # No error here
+
+    def test_bad_get_att(self):
+        """
+        Validation should fail for GetAtt that returns the wrong type
+        """
+
+        source = {
+            "Resources": {
+                "First": {
+                    "Type": "AWS::S3::Bucket",
+                },
+                "Test": {
+                    "Type": "AWS::S3::Bucket",
+                    "Properties": {
+                        "CorsConfiguration": {
+                            "Fn::GetAtt": ["First", "DomainName"],
+                        },
+                    },
+                },
+            },
+        }
+
+        with self.assertRaisesRegex(cfn_flip.ValidationError, "Resource \"Test\" has invalid data in property \"CorsConfiguration\". \(GetAtt returns wrong data type\)"):
+            cfn_flip.validate(source)  # No error here
