@@ -1,35 +1,65 @@
-"""                                                                                                      
-Copyright 2016-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.                                  
-                                                                                                         
-Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except in compliance with the License. A copy of the License is located at                                              
-                                                                                                         
-    http://aws.amazon.com/apache2.0/                                                                     
-                                                                                                         
-or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.                                                 
+"""
+Copyright 2016-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License").
+You may not use this file except in compliance with the License. A copy of the License is located at
+
+    http://aws.amazon.com/apache2.0/
+
+or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
 """
 
 from . import flip
-import argparse
+import click
 import sys
 
-def main():
+
+@click.command()
+@click.option("--input", "-i", "in_format", type=click.Choice(["json", "yaml"]), help="Specify the input format. Overrides -j and -y flags.")
+@click.option("--output", "-o", "out_format", type=click.Choice(["json", "yaml"]), help="Specify the output format. Overrides -j, -y, and -n flags.")
+@click.option("--json", "-j", "out_flag", flag_value="json", help="Convert to JSON. Assume the input is YAML.")
+@click.option("--yaml", "-y", "out_flag", flag_value="yaml", help="Convert to YAML. Assume the input is JSON.")
+@click.option("--clean", "-c", is_flag=True, help="Performs some opinionated cleanup on your template.")
+@click.option("--long", "-l", is_flag=True, help="Use long-form syntax for functions when converting to YAML.")
+@click.option("--no-flip", "-n", is_flag=True, help="Perform other operations but do not flip the output format.")
+@click.argument("input", type=click.File("r"), default=sys.stdin)
+@click.argument("output", type=click.File("w"), default=sys.stdout)
+@click.version_option(message='AWS Cloudformation Template Flip, Version %(version)s')
+@click.pass_context
+def main(ctx, **kwargs):
     """
-    Figure out the input and output stream
-    Then figure out the input format and set the opposing output format
+    AWS CloudFormation Template Flip is a tool that converts
+    AWS CloudFormation templates between JSON and YAML formats,
+    making use of the YAML format's short function syntax where possible.
     """
+    in_format = kwargs.pop('in_format')
+    out_format = kwargs.pop('out_format') or kwargs.pop('out_flag')
+    no_flip = kwargs.pop('no_flip')
+    clean = kwargs.pop('clean')
+    long_form = kwargs.pop('long')
+    input_file = kwargs.pop('input')
+    output_file = kwargs.pop('output')
 
-    # Set up the arg parser
-    parser = argparse.ArgumentParser(description="AWS CloudFormation Template Flip is a tool that converts AWS CloudFormation templates between JSON and YAML formats, making use of the YAML format's short function syntax where possible.")
-    parser.add_argument("-c", "--clean", action="store_true", help="Performs some opinionated cleanup on your template. For now, this just converts uses of Fn::Join to Fn::Sub.")
-    parser.add_argument("input", nargs="?", type=argparse.FileType("r"), default=sys.stdin, help="File to read from. If you do not supply a file, input will be read from stdin.")
-    parser.add_argument("output", nargs="?", type=argparse.FileType("w"), default=sys.stdout, help="File to write to. If you do not supply a file, output will be written to stdout.")
+    if not in_format:
+        if input_file.name.endswith(".json"):
+            in_format = "json"
+        elif input_file.name.endswith(".yaml") or input_file.name.endswith(".yml"):
+            in_format = "yaml"
 
-    args = parser.parse_args()
-
-    template = args.input.read()
+    if input_file.name == "<stdin>" and sys.stdin.isatty():
+        click.echo(ctx.get_help())
+        ctx.exit()
 
     try:
-        args.output.write(flip(template, args.clean))
+        output_file.write(flip(
+            input_file.read(),
+            in_format=in_format,
+            out_format=out_format,
+            clean_up=clean,
+            no_flip=no_flip,
+            long_form=long_form
+        ))
     except Exception as e:
-        sys.stderr.write("{}\n".format(str(e)))
-        sys.exit(1)
+        raise click.ClickException("{}".format(e))

@@ -1,8 +1,15 @@
+[![Build Status](https://www.travis-ci.org/awslabs/aws-cfn-template-flip.svg?branch=master)](https://www.travis-ci.org/awslabs/aws-cfn-template-flip)
+[![PyPI version](https://badge.fury.io/py/cfn_flip.svg)](https://badge.fury.io/py/cfn_flip)
+[![Codecov Test Coverage](https://codecov.io/gh/awslabs/aws-cfn-template-flip/branch/master/graphs/badge.svg?style=flat)](https://codecov.io/gh/awslabs/aws-cfn-template-flip)
+[![Snap Status](https://build.snapcraft.io/badge/awslabs/aws-cfn-template-flip.svg)](https://build.snapcraft.io/user/awslabs/aws-cfn-template-flip)
+
+[![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-white.svg)](https://snapcraft.io/cfn-flip)
+
 # AWS CloudFormation Template Flip
 
 ## About
 
-AWS CloudFormation Template Flip is a tool that converts [AWS CloudFormation](https://aws.amazon.com/cloudformation/) templates between [JSON](http://json.org/) and [YAML](http://yaml.org) formats, making use of the YAML format’s short function syntax where possible.
+AWS CloudFormation Template Flip is a tool that converts [AWS CloudFormation](https://aws.amazon.com/cloudformation/) templates between [JSON](http://json.org/) and [YAML](http://yaml.org) formats, making use of the YAML format's short function syntax where possible.
 
 The term "Flip" is inspired by the well-known Unix command-line tool [flip](https://ccrma.stanford.edu/~craig/utility/flip/) which converts text files between Unix, Mac, and MS-DOS formats.
 
@@ -22,24 +29,32 @@ Note that the command line tool is spelled `cfn-flip` with a hyphen, while the p
 
 ### Command line tool
 
-    cfn-flip [-h] [-c] [input] [output]
+```
+Usage: cfn-flip [OPTIONS] [INPUT] [OUTPUT]
 
-    AWS CloudFormation Template Flip is a tool that converts AWS CloudFormation
-    templates between JSON and YAML formats, making use of the YAML format's short
-    function syntax where possible.
+  AWS CloudFormation Template Flip is a tool that converts AWS
+  CloudFormation templates between JSON and YAML formats, making use of the
+  YAML format's short function syntax where possible."
 
-    positional arguments:
-      input        File to read from. If you do not supply a file, input will be
-                   read from stdin.
-      output       File to write to. If you do not supply a file, output will be
-                   written to stdout.
+Options:
+  -i, --input [json|yaml]   Specify the input format. Overrides -j and -y
+                            flags.
+  -o, --output [json|yaml]  Specify the output format. Overrides -j, -y, and
+                            -n flags.
+  -j, --json                Convert to JSON. Assume the input is YAML.
+  -y, --yaml                Convert to YAML. Assume the input is JSON.
+  -c, --clean               Performs some opinionated cleanup on your
+                            template.
+  -l, --long                Use long-form syntax for functions when converting
+                            to YAML.
+  -n, --no-flip             Perform other operations but do not flip the
+                            output format.
+  --version                 Show the version and exit.
+  --help                    Show this message and exit.
+```
 
-    optional arguments:
-      -h, --help   show this help message and exit
-      -c, --clean  Performs some opinionated cleanup on your template. For now,
-                   this just converts uses of Fn::Join to Fn::Sub.
 
-Cloudflip will detect the format of the input template and convert JSON to YAML and YAML to JSON, respectively.
+cfn-flip will detect the format of the input template and convert JSON to YAML and YAML to JSON, respectively.
 
 Examples:
 

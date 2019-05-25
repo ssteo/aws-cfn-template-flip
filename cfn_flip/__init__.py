@@ -1,66 +1,115 @@
-"""                                                                                                      
-Copyright 2016-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.                                  
-                                                                                                         
-Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except in compliance with the License. A copy of the License is located at                                              
-                                                                                                         
-    http://aws.amazon.com/apache2.0/                                                                     
-                                                                                                         
-or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.                                                 
+"""
+Copyright 2016-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License").
+You may not use this file except in compliance with the License. A copy of the License is located at
+
+    http://aws.amazon.com/apache2.0/
+
+or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
 """
 
-from .clean import clean
-from .custom_json import DateTimeAwareJsonEncoder
-from .custom_yaml import custom_yaml
-import collections
-import json
+from .yaml_dumper import get_dumper
+from cfn_clean import clean
+from cfn_tools import load_json, load_yaml, dump_json
+import yaml
+import sys
 
-class MyDumper(custom_yaml.Dumper):
-  """
-  Indent block sequences from parent using more common style
-  ("  - entry"  vs "- entry").  
-  Causes fewer problems with validation and tools.
-  """
-  
-  def increase_indent(self,flow=False, indentless=False):
-    return super(MyDumper,self).increase_indent(flow, False)
+
+def load(template):
+    """
+    Try to guess the input format
+    """
+
+    try:
+        data = load_json(template)
+        return data, "json"
+    except ValueError as e:
+        try:
+            data = load_yaml(template)
+            return data, "yaml"
+        except Exception:
+            raise e
+
+
+def dump_yaml(data, clean_up=False, long_form=False):
+    """
+    Output some YAML
+    """
+
+    return yaml.dump(
+        data,
+        Dumper=get_dumper(clean_up, long_form),
+        default_flow_style=False,
+        allow_unicode=True
+    )
+
 
 def to_json(template, clean_up=False):
     """
-    Convert the data to json
-    undoing yaml short syntax where detected
+    Assume the input is YAML and convert to JSON
     """
 
-    data = custom_yaml.load(template)
+    data = load_yaml(template)
 
     if clean_up:
         data = clean(data)
 
-    return json.dumps(data, indent=4, cls=DateTimeAwareJsonEncoder)
+    return dump_json(data)
 
-def to_yaml(template, clean_up=False):
+
+def to_yaml(template, clean_up=False, long_form=False):
     """
-    Convert the data to yaml
-    using yaml short syntax for functions where possible
+    Assume the input is JSON and convert to YAML
     """
 
-    data = json.loads(template, object_pairs_hook=collections.OrderedDict)
+    data = load_json(template)
 
     if clean_up:
         data = clean(data)
 
-    return custom_yaml.dump(data, Dumper=MyDumper, default_flow_style=False)
+    return dump_yaml(data, clean_up, long_form)
 
-def flip(template, clean_up=False):
+
+def flip(template, in_format=None, out_format=None, clean_up=False, no_flip=False, long_form=False):
     """
     Figure out the input format and convert the data to the opposing output format
     """
 
-    try:
-        return to_yaml(template, clean_up)
-    except ValueError:
-        pass  # Hand over to the yaml parser
+    # Do we need to figure out the input format?
+    if not in_format:
+        # Load the template as JSON?
+        if (out_format == "json" and no_flip) or (out_format == "yaml" and not no_flip):
+            in_format = "json"
+        elif (out_format == "yaml" and no_flip) or (out_format == "json" and not no_flip):
+            in_format = "yaml"
 
-    try:
-        return to_json(template, clean_up)
-    except Exception as e:
-        raise Exception("Could not determine the input format: {}", e)
+    # Load the data
+    if in_format == "json":
+        data = load_json(template)
+    elif in_format == "yaml":
+        data = load_yaml(template)
+    else:
+        data, in_format = load(template)
+
+    # Clean up?
+    if clean_up:
+        data = clean(data)
+
+    # Figure out the output format
+    if not out_format:
+        if (in_format == "json" and no_flip) or (in_format == "yaml" and not no_flip):
+            out_format = "json"
+        else:
+            out_format = "yaml"
+
+    # Finished!
+    if out_format == "json":
+        if sys.version[0] == "3":
+            return dump_json(data)
+        else:
+            return dump_json(data).encode('utf-8')
+
+    return dump_yaml(data, clean_up, long_form)
