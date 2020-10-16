@@ -12,7 +12,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="cfn_flip",
-    version="1.2.0",
+    version="1.2.3",
     description="Convert AWS CloudFormation templates between JSON and YAML formats",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
@@ -23,11 +23,14 @@ setup(
     packages=find_packages(exclude=["tests"]),
     install_requires=[
         "Click",
-        "PyYAML>=3.13b1",
+        "PyYAML>=4.1",
         "six",
     ],
-    setup_requires=['pytest-runner'],
-    tests_require=['pytest>=4.3.0', 'pytest-cov'],
+    tests_require=[
+        'pytest>=4.3.0', 
+        'pytest-cov',
+        'pytest-runner'
+    ],
     zip_safe=False,
     entry_points={
         "console_scripts": ["cfn-flip=cfn_flip.main:main"],

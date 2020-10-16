@@ -37,6 +37,24 @@ def input_long_json():
 
 
 @pytest.fixture
+def input_json_with_literal():
+    with open("examples/test_json_data.json", "r") as f:
+        return f.read().strip()
+
+
+@pytest.fixture
+def input_json_with_def_string_with_sub():
+    with open("examples/test_json_def_string_with_sub.json", "r") as f:
+        return f.read().strip()
+
+
+@pytest.fixture
+def input_yaml_with_def_string_with_sub():
+    with open("examples/test_yaml_def_string_with_sub.yaml", "r") as f:
+        return f.read()
+
+
+@pytest.fixture
 def input_yaml():
     with open("examples/test.yaml", "r") as f:
         return f.read().strip()
@@ -64,6 +82,12 @@ def multibyte_json():
 def multibyte_yaml():
     with open("examples/test_multibyte.yaml", "r") as f:
         return f.read().strip()
+
+
+@pytest.fixture
+def parsed_yaml_with_json_literal():
+    with open("examples/test_json_data.yaml") as f:
+        return load_yaml(f.read().strip())
 
 
 @pytest.fixture
@@ -164,14 +188,14 @@ def test_to_yaml_with_json(input_json, parsed_yaml):
     assert parsed_actual == parsed_yaml
 
 
-def test_to_yaml_with_yaml(fail_message, input_yaml):
+def test_to_yaml_with_yaml(input_yaml, parsed_yaml):
     """
-    Test that to_yaml fails with a ValueError when passed yaml
-    Yaml is not valid json
+    Test that to_yaml still works when passed yaml
     """
 
-    with pytest.raises(JSONDecodeError, match=fail_message):
-        cfn_flip.to_yaml(input_yaml)
+    actual = cfn_flip.to_yaml(input_yaml)
+
+    assert load_yaml(actual) == parsed_yaml
 
 
 def test_flip_to_json(input_yaml, input_json, parsed_json):
@@ -615,3 +639,18 @@ def test_quoted_digits():
     actual = cfn_flip.to_yaml(value)
 
     assert actual == expected
+
+
+def test_flip_to_yaml_with_json_literal(input_json_with_literal, parsed_yaml_with_json_literal):
+    """
+    Test that load json with json payload that must stay json when converted to yaml
+    """
+
+    actual = cfn_flip.to_yaml(input_json_with_literal)
+    assert load_yaml(actual) == parsed_yaml_with_json_literal
+
+
+def test_flip_to_yaml_with_json_literal_with_sub(input_json_with_def_string_with_sub,
+                                                 input_yaml_with_def_string_with_sub):
+    actual = cfn_flip.to_yaml(input_json_with_def_string_with_sub)
+    assert actual == input_yaml_with_def_string_with_sub
